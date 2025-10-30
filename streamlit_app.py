@@ -3,7 +3,7 @@ from __future__ import annotations
 import polars as pl
 import pydeck as pdk
 import streamlit as st
-from marbletown_pipeline import OUTPUT_PATH, ensure_dataset
+from marbletown_pipeline import OUTPUT_PATH
 
 
 MAP_INITIAL_VIEW = pdk.ViewState(
@@ -16,7 +16,12 @@ MAP_INITIAL_VIEW = pdk.ViewState(
 
 @st.cache_data(show_spinner=False)
 def load_occurrences() -> pl.DataFrame:
-    ensure_dataset(verbose=False)
+    if not OUTPUT_PATH.exists():
+        raise FileNotFoundError(
+            f"Dataset not found at {OUTPUT_PATH}. "
+            "Generate it locally with `uv run python main.py` and include the Parquet "
+            "file in your deployment."
+        )
     return pl.read_parquet(OUTPUT_PATH)
 
 
@@ -33,10 +38,13 @@ def prepare_filters(df: pl.DataFrame) -> pl.DataFrame:
         .unique()
         .to_list()
     )
+    default_ranks = [rank for rank in status_ranks if rank in {"S1", "S1S2", "S2", "S2B", "S3", "S3B"}]
+    if not default_ranks:
+        default_ranks = status_ranks
     selected_ranks = st.sidebar.multiselect(
         "State conservation status rank",
         options=status_ranks,
-        default=status_ranks,
+        default=default_ranks,
     )
 
     species_of_greatest_need = st.sidebar.checkbox(
@@ -114,16 +122,36 @@ def main() -> None:
 
     try:
         df = load_occurrences()
+    except FileNotFoundError as exc:
+        st.error(str(exc))
+        st.stop()
     except Exception as exc:  # pylint: disable=broad-except
-        st.error(
-            "Unable to load the Marbletown dataset. "
-            "If this app is running on Streamlit Cloud, make sure outbound network "
-            "access is available for Nominatim and GBIF requests, or bundle the "
-            "generated Parquet file with the deployment."
-        )
+        st.error("Unexpected error while loading the dataset.")
         st.exception(exc)
         st.stop()
     filtered = prepare_filters(df)
+
+    with st.expander("What do the NYS conservation ranks mean?"):
+        st.markdown(
+            """
+            | Rank  | Meaning                                                        |
+            |-------|----------------------------------------------------------------|
+            | S1    | Critically imperiled in New York                               |
+            | S1S2  | Between S1 and S2; leaning imperiled                           |
+            | S2    | Imperiled                                                      |
+            | S2B   | Imperiled as a breeder (seasonal)                              |
+            | S3    | Vulnerable                                                     |
+            | S3B   | Vulnerable as a breeder                                        |
+            | S4    | Apparently secure                                              |
+            | S5    | Secure                                                         |
+            | S5B   | Secure as a breeder                                            |
+            | SNRN  | Not yet ranked in New York                                     |
+            | SH    | Possibly extirpated (historical)                               |
+            | SX    | Presumed extirpated                                            |
+            | SU    | Unrankable (insufficient data)                                 |
+            | SNA   | Not applicable (e.g., non-native or managed population)        |
+            """
+        )
 
     st.subheader("Summary")
     total_records = df.height
