@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import polars as pl
 import pydeck as pdk
 import streamlit as st
+from marbletown_pipeline import OUTPUT_PATH, ensure_dataset
 
-
-DATA_PATH = Path("data/marbletown_gbif_occurrences.parquet")
 
 MAP_INITIAL_VIEW = pdk.ViewState(
     latitude=41.85,
@@ -19,12 +16,8 @@ MAP_INITIAL_VIEW = pdk.ViewState(
 
 @st.cache_data(show_spinner=False)
 def load_occurrences() -> pl.DataFrame:
-    if not DATA_PATH.exists():
-        raise FileNotFoundError(
-            f"Expected data file at {DATA_PATH}. "
-            "Run `uv run python main.py` to regenerate the Marbletown dataset."
-        )
-    return pl.read_parquet(DATA_PATH)
+    ensure_dataset(verbose=False)
+    return pl.read_parquet(OUTPUT_PATH)
 
 
 def prepare_filters(df: pl.DataFrame) -> pl.DataFrame:
