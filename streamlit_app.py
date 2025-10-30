@@ -179,7 +179,21 @@ def main() -> None:
     st.pydeck_chart(deck)
 
     st.subheader("Records")
-    st.dataframe(filtered.to_arrow(), hide_index=True)
+    st.dataframe(
+        filtered.to_arrow(),
+        hide_index=True,
+        column_config={
+            "gbifID": st.column_config.LinkColumn(
+                "GBIF Record",
+                display_text="open",
+                validate="https://www.gbif.org/occurrence/{value}",
+            ),
+            "references": st.column_config.LinkColumn(
+                "Reference",
+                display_text="Open record",
+            ),
+        },
+    )
 
 
 if __name__ == "__main__":
