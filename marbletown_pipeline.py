@@ -292,8 +292,18 @@ def run_pipeline(verbose: bool = True) -> PipelineResult:
 
 
 def ensure_dataset(force: bool = False, verbose: bool = False) -> Path:
-    if force or not OUTPUT_PATH.exists():
+    if OUTPUT_PATH.exists() and not force:
+        return OUTPUT_PATH
+
+    try:
         run_pipeline(verbose=verbose)
+    except Exception as exc:  # pylint: disable=broad-except
+        if OUTPUT_PATH.exists():
+            if verbose:
+                print(f"Warning: GBIF/Nominatim request failed ({exc}); using existing dataset.")
+            return OUTPUT_PATH
+        raise
+
     return OUTPUT_PATH
 
 

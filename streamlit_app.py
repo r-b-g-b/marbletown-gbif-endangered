@@ -112,7 +112,17 @@ def main() -> None:
     st.set_page_config(page_title="Marbletown GBIF Occurrences", layout="wide")
     st.title("GBIF Occurrences in Marbletown, NY")
 
-    df = load_occurrences()
+    try:
+        df = load_occurrences()
+    except Exception as exc:  # pylint: disable=broad-except
+        st.error(
+            "Unable to load the Marbletown dataset. "
+            "If this app is running on Streamlit Cloud, make sure outbound network "
+            "access is available for Nominatim and GBIF requests, or bundle the "
+            "generated Parquet file with the deployment."
+        )
+        st.exception(exc)
+        st.stop()
     filtered = prepare_filters(df)
 
     st.subheader("Summary")
