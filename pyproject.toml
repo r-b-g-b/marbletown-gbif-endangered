@@ -1,0 +1,16 @@
+[project]
+name = "nys-gbif-endangered"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "diskcache>=5.6.3",
+    "jupyterlab>=4.4.10",
+    "polars",
+    "python-lsp-server>=1.13.1",
+    "requests",
+    "ruff-lsp>=0.0.62",
+    "streamlit>=1.51.0",
+    "tenacity>=9.1.2",
+]
