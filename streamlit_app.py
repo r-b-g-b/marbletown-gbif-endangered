@@ -179,18 +179,24 @@ def main() -> None:
     st.pydeck_chart(deck)
 
     st.subheader("Records")
+    display_df = filtered.with_columns(
+        pl.when(pl.col("gbifID").is_not_null())
+        .then(pl.concat_str(pl.lit("https://www.gbif.org/occurrence/"), pl.col("gbifID").cast(pl.Utf8)))
+        .otherwise(None)
+        .alias("gbifLink")
+    )
+
     st.dataframe(
-        filtered.to_arrow(),
+        display_df.to_arrow(),
         hide_index=True,
         column_config={
-            "gbifID": st.column_config.LinkColumn(
-                "GBIF Record",
-                display_text="open",
-                validate="https://www.gbif.org/occurrence/{value}",
-            ),
             "references": st.column_config.LinkColumn(
                 "Reference",
                 display_text="Open record",
+            ),
+            "gbifLink": st.column_config.LinkColumn(
+                "GBIF Record",
+                display_text="open",
             ),
         },
     )
